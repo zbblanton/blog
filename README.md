@@ -1,3 +1,3 @@
 # Blantontechnology Blog
 
-<blantontechnology.com>
+http://blantontechnology.com
