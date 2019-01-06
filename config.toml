@@ -1,0 +1,15 @@
+baseURL = "http:/blantontechnology.com"
+languageCode = "en-us"
+title = "Blanton Technology"
+theme = "jeffprod"
+canonifyurls = true
+pygmentsCodeFences = true
+pygmentsStyle = "dracula"
+pygmentsCodefencesGuessSyntax = true
+
+[permalinks]
+    post = "/:year/:filename"
+
+[taxonomies]
+    tag = "tags"
+    archive = "archives"

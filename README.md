@@ -1,0 +1,3 @@
+# Blantontechnology Blog
+
+<blantontechnology.com>

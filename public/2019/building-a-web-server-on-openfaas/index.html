@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Blanton Technology  | Building a Web Server on OpenFaaS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css" />
+    <link rel="stylesheet" href="http:///blantontechnology.com/css/blog.css" />
+    
+</head>
+<body>
+
+    
+    <nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="http:///blantontechnology.com">Home</a>
+            
+            <a class="navbar-item" href="https://www.linkedin.com/in/zacharyblanton/">About</a>            
+        </div>
+    </nav>
+    
+
+    
+    <section class="hero is-info is-medium">
+        <div class="hero-body" style="background-image: url(http:///blantontechnology.com/img/bg-blog.jpg);">
+            <div class="container has-text-centered">
+                <br>
+                <h1 class="title is-size-1">
+                    
+                        Building a Web Server on OpenFaaS
+                    
+                </h1>
+                
+                    January 6, 2019 &middot;&nbsp;4 min read
+                
+            </div>
+        </div>
+    </section>
+
+
+<div class="container">
+    <div class="section">
+    
+
+<div class="columns">
+    <div class="column is-9">
+        <div class="tile is-child box">
+            <div class="content">
+                
+
+<h1 id="building-a-web-server-on-openfaas">Building a Web Server on OpenFaaS</h1>
+
+<p>Recently I&rsquo;ve been playing around with OpenFaaS on Kubernetes and I&rsquo;ve been looking for a small project to run on it. I&rsquo;ve also wanted to start this static blog and figured this is a perfect project to run on OpenFaaS.</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>Before we start make sure you have installed OpenFaaS on Kubernetes. This can be done in a few commands if you already have Helm installed. If you don&rsquo;t follow this guide to get Helm installed:
+<a href="https://docs.helm.sh/using_helm/#install-helm">https://docs.helm.sh/using_helm/#install-helm</a></p>
+
+<p>You can follow this README to set up OpenFaaS:
+<a href="https://github.com/openfaas/faas-netes/blob/master/chart/openfaas/README.md">https://github.com/openfaas/faas-netes/blob/master/chart/openfaas/README.md</a></p>
+
+<h2 id="walkthrough">Walkthrough</h2>
+
+<p>First lets create our function (I&rsquo;m calling it blog but you can name it anything you like):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">mkdir blog
+<span style="color:#8be9fd;font-style:italic">cd</span> blog
+faas template pull https://github.com/openfaas-incubator/golang-http-template
+faas new --lang golang-middleware blog</code></pre></div>
+<p>The first command above will pull the golang http template down so our CLI can use it.</p>
+
+<p>Now lets write a very simple http server using golang. Open up the handler.go file (Something like blog/blog/handler.go) and rewrite it with:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-golang" data-lang="golang"><span style="color:#ff79c6">package</span> function
+
+<span style="color:#ff79c6">import</span> (
+        <span style="color:#f1fa8c">&#34;net/http&#34;</span>
+)
+
+<span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">Handle</span>(w http.ResponseWriter, r <span style="color:#ff79c6">*</span>http.Request) {
+        path <span style="color:#ff79c6">:=</span> r.URL.Path
+        <span style="color:#ff79c6">if</span> <span style="color:#8be9fd;font-style:italic">string</span>(path[<span style="color:#8be9fd;font-style:italic">len</span>(path)<span style="color:#ff79c6">-</span><span style="color:#bd93f9">1</span>]) <span style="color:#ff79c6">==</span> <span style="color:#f1fa8c">&#34;/&#34;</span> {
+                path = path <span style="color:#ff79c6">+</span> <span style="color:#f1fa8c">&#34;index.html&#34;</span>
+        }
+        http.<span style="color:#50fa7b">ServeFile</span>(w, r, <span style="color:#f1fa8c">&#34;public/&#34;</span><span style="color:#ff79c6">+</span>path)
+}</code></pre></div>
+<p>This is a really simple handler function that first checks if our request path ends with <code>/</code> if so lets add index.html. Now
+we can use that path to serve our file. This works because OpenFaaS modifies our request path before the handler sees it. So if we make a function call to <a href="http://myfaas.com/function/blog/page1/page.html">http://myfaas.com/function/blog/page1/page.html</a>, our path is set to <code>page1/page.html</code>.</p>
+
+<p>All our web files are located inside the public folder. For example if we had a bunch of static files, first make a folder called public in the same folder as the handler.go and then paste all your static content inside public.</p>
+
+<p><strong>Note</strong>: The public folder is just preference, you can name it any folder you like. Just make sure to change the public folder in the function code above.</p>
+
+<p>Now if you go ahead and build this you will end up with a docker image that seems ready to go and you can push it to OpenFaaS. But there is actually an issue in the dockerfile where it does not copy over any files other than handler.go in the build. To solve this we need to make an edit inside the dockerfile for the template. Edit blog/template/golang-middleware/Dockerfile and add the following two lines after &ldquo;COPY &ndash;from=build /usr/bin/fwatchdog .&rdquo;</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-dockerfile" data-lang="dockerfile">COPY --from<span style="color:#ff79c6">=</span>build /go/src/handler/function/  .
+<span style="color:#ff79c6">RUN</span> chown -R app /home/app</code></pre></div>
+<p>The lines above will copy all our files into the container and make sure the files are owned correctly.</p>
+
+<p>I&rsquo;ve opened up a <a href="https://github.com/openfaas-incubator/golang-http-template/pull/17">PR</a> that fixes the copy problem. If it&rsquo;s accepted and merged I&rsquo;ll update this post.</p>
+
+<p>Before we build, if you have multiple worker nodes on Kubernetes you will need to push your build to a registry. This can be your public DockerHub or a private one. Either way if this is the case you need to modify the blog.yml file and set the image correctly. For example if you have a private registry at registry.example.com:5000 then change the image line in the file to something like registry.example.com:5000/blog. Now push the image to the registry with:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">faas-cli push blog -f blog.yml</code></pre></div>
+<p>Now we ready to build our function! Run this command in the root of our project:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">faas-cli build blog -f blog.yml</code></pre></div>
+<p>If all went well, we now have a function ready to deploy to OpenFaaS. But before we deploy it, we want the function to scale to 0 if the website is not being hit. This essientially turns the function off until it&rsquo;s called. Once this happens the function starts up in about 2-3 seconds and will continue to run until the website stops getting hit and is idle for about 5 minutes.</p>
+
+<p>To do this we take advantage of the <a href="https://docs.openfaas.com/architecture/autoscaling/#zero-scale">Zero-scale</a> you can follow this github page <a href="https://github.com/openfaas-incubator/faas-idler">https://github.com/openfaas-incubator/faas-idler</a> for install instruction but essentially you copy the <code>faas-idler-dep.yml</code> from the repo, change the line with <code>- -dry-run=true</code> to <code>- -dry-run=false</code> and then run:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4">kubectl apply -f faas-idler-dep.yml</pre></div>
+<p>We are now ready to deploy our function! Simply run the following command to deploy the function with Zero-scale enabled.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4">faas-cli deploy blog -f blog.yml --label &#34;com.openfaas.scale.zero=true&#34;</pre></div>
+<p><strong>NOTE</strong>: If you dont want Zero-scale you can just exclude the <code>--label &quot;com.openfaas.scale.zero=true&quot;</code>.</p>
+
+<p>You should now be able to goto your browser and check if your static website is running. So for example if you have an index.html file inside the public folder and OpenFaaS is running on <code>192.168.0.10:31112</code> then your should be able to browse to <a href="http://192.168.0.10:31112/function/blog">http://192.168.0.10:31112/function/blog</a> and view your file.</p>
+
+            </div>
+        </div>
+    </div>
+    <div class="column is-3">
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Tags</h1>
+        <div class="tags">
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/go">go</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/golang">golang</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/kubernetes">kubernetes</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/openfaas">openfaas</a></span>
+        
+        </div>          
+    </div>
+</div><br>
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Recent posts</h1>
+        
+            <h1><a href="http:///blantontechnology.com/2019/building-a-web-server-on-openfaas/">Building a Web Server on OpenFaaS</a></h1>
+            <time class="has-text-grey-light is-size-7">6 January 2019</time>
+        
+    </div>
+</div>
+    <br>
+                
+
+
+    
+<br>
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Archives</h1>
+        
+            <a href="http:///blantontechnology.com/archives/2019">2019</a> (1)<br>
+        
+    </div>
+</div>
+
+    </div>
+</div>
+
+
+    </div>
+</div>
+
+<footer class="footer has-background-grey-darker has-text-white">
+    <div class="content has-text-centered">
+        <p>
+            <span class="icon is-large"><a href="https://www.linkedin.com/in/zacharyblanton/" class="mysocial"><i class="fab fa-linkedin fa-3x"></i></a></span>&nbsp;&nbsp;
+            <span class="icon is-large"><a href="https://github.com/zbblanton" class="mysocial"><i class="fab fa-github fa-3x"></i></a></span>&nbsp;&nbsp;
+            <br><br>
+            Copyright &copy; Blanton Technology 2019
+        </p>
+    </div>
+</footer>
+
+<script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
+</body>
+</html>

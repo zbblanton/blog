@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Archives on Blanton Technology</title>
+    <link>http:///blantontechnology.com/archives/</link>
+    <description>Recent content in Archives on Blanton Technology</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 06 Jan 2019 04:02:20 -0500</lastBuildDate>
+    
+        <atom:link href="http:///blantontechnology.com/archives/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>2019</title>
+      <link>http:///blantontechnology.com/archives/2019/</link>
+      <pubDate>Sun, 06 Jan 2019 04:02:20 -0500</pubDate>
+      
+      <guid>http:///blantontechnology.com/archives/2019/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

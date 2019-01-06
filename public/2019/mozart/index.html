@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Blanton Technology  | Mozart</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css" />
+    <link rel="stylesheet" href="http:///blantontechnology.com/css/blog.css" />
+    
+</head>
+<body>
+
+    
+    <nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="http:///blantontechnology.com">Home</a>
+            
+            <a class="navbar-item" href="https://www.linkedin.com/in/zacharyblanton/">About</a>            
+        </div>
+    </nav>
+    
+
+    
+    <section class="hero is-info is-medium">
+        <div class="hero-body" style="background-image: url(http:///blantontechnology.com/img/bg-blog.jpg);">
+            <div class="container has-text-centered">
+                <br>
+                <h1 class="title is-size-1">
+                    
+                        Mozart
+                    
+                </h1>
+                
+                    January 5, 2019 &middot;&nbsp;2 min read
+                
+            </div>
+        </div>
+    </section>
+
+
+<div class="container">
+    <div class="section">
+    
+
+<div class="columns">
+    <div class="column is-9">
+        <div class="tile is-child box">
+            <div class="content">
+                
+
+<h1 id="mozart">Mozart</h1>
+
+<p><a href="https://goreportcard.com/report/github.com/zbblanton/mozart"><img src="https://goreportcard.com/badge/github.com/zbblanton/mozart" alt="Go Report Card" /></a></p>
+
+<h2 id="description">Description</h2>
+
+<p>Container Orchestration Tool written in Golang. Similar to tools such as Kubernetes and Docker Swarm.</p>
+
+<h2 id="features">Features</h2>
+
+<ul>
+<li>Orchestrate containers across multiple nodes.</li>
+<li>Automatically move containers around to other workers if a worker dies.</li>
+<li>Automatically bring containers back up if they die.</li>
+<li>Easy one line agent setup to quickly deploy workers.</li>
+<li>Fully automated TLS communication between the master and the agents.</li>
+<li>Create services accounts that can used to access the API allowing for extensions/plugins.</li>
+</ul>
+
+<h2 id="getting-started">Getting Started</h2>
+
+<p>The fastest way to get started is to install all three of Mozart&rsquo;s components to the same host. To do this simply run the commands below:</p>
+
+<p>NOTE: Make sure to put in your server host IP in INSERT_HOST_IP_HERE!</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">git clone https://github.com/zbblanton/mozart.git
+<span style="color:#8be9fd;font-style:italic">cd</span> mozart
+chmod +x install_mozart.sh
+sudo ./install_mozart.sh
+sudo mozartctl cluster create --server INSERT_HOST_IP_HERE --name mozart
+sudo cp /etc/mozart/mozart-config.json /etc/mozart/config.json
+sudo systemctl start mozart-server</code></pre></div>
+<p>Next run</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4">mozartctl cluster print</pre></div>
+<p>This will reprint out the docker run command you need to start the mozart-agent up. The command will look similar to this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">docker run --name mozart-agent -d --rm --privileged -v /var/run/docker.sock:/var/run/docker.sock -p <span style="color:#bd93f9">49433</span>:49433 -e <span style="color:#f1fa8c">&#34;MOZART_SERVER_IP=192.168.0.45&#34;</span> -e <span style="color:#f1fa8c">&#34;MOZART_JOIN_KEY=pHrmesTNgAUrxiRru-S9MJkq4bWjTIGpz-LkkgsUIbuBygPvGVc76_F_EdIVvSjCvvKZqq3MZU7-C37st-B4A2pEN3l6D0Vimj0Qbj3jIkAcYBU3pP6qtODUvbuZizxqOdY2dL8sUuQUeFp2BVNC0tE2T12ONSXagMQlC0Iq6_A=&#34;</span> -e <span style="color:#f1fa8c">&#34;MOZART_CA_HASH=NaBI2rUXXYG_b9c2AS3euxU_ZSygH990v2VpcfVi3Ac=&#34;</span> zbblanton/mozart-agent</code></pre></div>
+<p>NOTE: Make sure to change the INSERT_HOST_IP_HERE to your agent&rsquo;s IP address.</p>
+
+<p>Below is an example config file to test out.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+    <span style="color:#ff79c6">&#34;Name&#34;</span>: <span style="color:#f1fa8c">&#34;test123&#34;</span>,
+    <span style="color:#ff79c6">&#34;Image&#34;</span>: <span style="color:#f1fa8c">&#34;nginx&#34;</span>,
+    <span style="color:#ff79c6">&#34;Env&#34;</span>: [
+        <span style="color:#f1fa8c">&#34;TEST1=1234&#34;</span>,
+        <span style="color:#f1fa8c">&#34;TEST2=abcd&#34;</span>
+    ],
+    <span style="color:#ff79c6">&#34;AutoRemove&#34;</span>: <span style="color:#ff79c6">true</span>,
+    <span style="color:#ff79c6">&#34;Privileged&#34;</span>: <span style="color:#ff79c6">false</span>
+}</code></pre></div>
+<p>Save this as something like config.json and then run:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4">sudo mozartctl run config.json</pre></div>
+            </div>
+        </div>
+    </div>
+    <div class="column is-3">
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Tags</h1>
+        <div class="tags">
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/development">development</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/go">go</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/golang">golang</a></span>
+        
+        </div>          
+    </div>
+</div><br>
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Recent posts</h1>
+        
+            <h1><a href="http:///blantontechnology.com/2019/mozart/">Mozart</a></h1>
+            <time class="has-text-grey-light is-size-7">5 January 2019</time>
+        
+    </div>
+</div>
+    <br>
+                
+
+
+    
+<br>
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Archives</h1>
+        
+            <a href="http:///blantontechnology.com/archives/2019">2019</a> (1)<br>
+        
+    </div>
+</div>
+
+    </div>
+</div>
+
+
+    </div>
+</div>
+
+<footer class="footer has-background-grey-darker has-text-white">
+    <div class="content has-text-centered">
+        <p>
+            <span class="icon is-large"><a href="https://www.linkedin.com/in/zacharyblanton/" class="mysocial"><i class="fab fa-linkedin fa-3x"></i></a></span>&nbsp;&nbsp;
+            <span class="icon is-large"><a href="https://github.com/zbblanton" class="mysocial"><i class="fab fa-github fa-3x"></i></a></span>&nbsp;&nbsp;
+            <br><br>
+            Copyright &copy; Blanton Technology 2019
+        </p>
+    </div>
+</footer>
+
+<script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
+</body>
+</html>

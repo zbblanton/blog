@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Golang on Blanton Technology</title>
+    <link>http:///blantontechnology.com/tags/golang/</link>
+    <description>Recent content in Golang on Blanton Technology</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 06 Jan 2019 04:02:20 -0500</lastBuildDate>
+    
+        <atom:link href="http:///blantontechnology.com/tags/golang/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Building a Web Server on OpenFaaS</title>
+      <link>http:///blantontechnology.com/2019/building-a-web-server-on-openfaas/</link>
+      <pubDate>Sun, 06 Jan 2019 04:02:20 -0500</pubDate>
+      
+      <guid>http:///blantontechnology.com/2019/building-a-web-server-on-openfaas/</guid>
+      <description>Building a Web Server on OpenFaaS Recently I&amp;rsquo;ve been playing around with OpenFaaS on Kubernetes and I&amp;rsquo;ve been looking for a small project to run on it. I&amp;rsquo;ve also wanted to start this static blog and figured this is a perfect project to run on OpenFaaS.
+Prerequisites Before we start make sure you have installed OpenFaaS on Kubernetes. This can be done in a few commands if you already have Helm installed.</description>
+    </item>
+    
+  </channel>
+</rss>
