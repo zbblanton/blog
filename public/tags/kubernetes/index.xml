@@ -6,10 +6,19 @@
     <description>Recent content in Kubernetes on Blanton Technology</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 06 Jan 2019 04:02:20 -0500</lastBuildDate>
+    <lastBuildDate>Mon, 07 Jan 2019 05:03:36 -0500</lastBuildDate>
     
         <atom:link href="http:///blantontechnology.com/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Setting Up Cloudflare Dynamic Dns on Kubernetes</title>
+      <link>http:///blantontechnology.com/2019/setting-up-cloudflare-dynamic-dns-on-kubernetes/</link>
+      <pubDate>Mon, 07 Jan 2019 05:03:36 -0500</pubDate>
+      
+      <guid>http:///blantontechnology.com/2019/setting-up-cloudflare-dynamic-dns-on-kubernetes/</guid>
+      <description>Setting Up Cloudflare Dynamic DNS On Kubernetes I&amp;rsquo;m currently working on switching all of my home infrastructure to Kubernetes including the blog you&amp;rsquo;re reading now. My ISP luckily doesn&amp;rsquo;t block port 80 and 443 so I can simply let Cloudflare point to my public IP. The problem is my IP is dynamic and can change at any point. So I needed something that can watch for my IP to change and then update Cloudflare with the new address.</description>
+    </item>
     
     <item>
       <title>Building a Web Server on OpenFaaS</title>

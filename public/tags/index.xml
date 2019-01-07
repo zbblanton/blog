@@ -6,15 +6,24 @@
     <description>Recent content in Tags on Blanton Technology</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 06 Jan 2019 04:02:20 -0500</lastBuildDate>
+    <lastBuildDate>Mon, 07 Jan 2019 05:03:36 -0500</lastBuildDate>
     
         <atom:link href="http:///blantontechnology.com/tags/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>Cloudflare</title>
+      <link>http:///blantontechnology.com/tags/cloudflare/</link>
+      <pubDate>Mon, 07 Jan 2019 05:03:36 -0500</pubDate>
+      
+      <guid>http:///blantontechnology.com/tags/cloudflare/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>Go</title>
       <link>http:///blantontechnology.com/tags/go/</link>
-      <pubDate>Sun, 06 Jan 2019 04:02:20 -0500</pubDate>
+      <pubDate>Mon, 07 Jan 2019 05:03:36 -0500</pubDate>
       
       <guid>http:///blantontechnology.com/tags/go/</guid>
       <description></description>
@@ -23,7 +32,7 @@
     <item>
       <title>Golang</title>
       <link>http:///blantontechnology.com/tags/golang/</link>
-      <pubDate>Sun, 06 Jan 2019 04:02:20 -0500</pubDate>
+      <pubDate>Mon, 07 Jan 2019 05:03:36 -0500</pubDate>
       
       <guid>http:///blantontechnology.com/tags/golang/</guid>
       <description></description>
@@ -32,7 +41,7 @@
     <item>
       <title>Kubernetes</title>
       <link>http:///blantontechnology.com/tags/kubernetes/</link>
-      <pubDate>Sun, 06 Jan 2019 04:02:20 -0500</pubDate>
+      <pubDate>Mon, 07 Jan 2019 05:03:36 -0500</pubDate>
       
       <guid>http:///blantontechnology.com/tags/kubernetes/</guid>
       <description></description>
