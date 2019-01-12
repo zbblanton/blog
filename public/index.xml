@@ -30,5 +30,14 @@
 Prerequisites Before we start make sure you have installed OpenFaaS on Kubernetes. This can be done in a few commands if you already have Helm installed.</description>
     </item>
     
+    <item>
+      <title>About</title>
+      <link>http:///blantontechnology.com/about/</link>
+      <pubDate>Sat, 05 Jan 2019 00:43:54 -0500</pubDate>
+      
+      <guid>http:///blantontechnology.com/about/</guid>
+      <description> Zachary Blanton </description>
+    </item>
+    
   </channel>
 </rss>
