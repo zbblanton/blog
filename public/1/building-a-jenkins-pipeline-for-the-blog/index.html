@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Blanton Technology </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css" />
+    <link rel="stylesheet" href="http:///blantontechnology.com/css/blog.css" />
+    
+</head>
+<body>
+
+    
+    <nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="http:///blantontechnology.com">Home</a>
+            
+            <a class="navbar-item" href="https://www.linkedin.com/in/zacharyblanton/">About</a>            
+        </div>
+    </nav>
+    
+
+    
+    <section class="hero is-info is-medium">
+        <div class="hero-body" style="background-image: url(http:///blantontechnology.com/img/bg-blog.jpg);">
+            <div class="container has-text-centered">
+                <br>
+                <h1 class="title is-size-1">
+                    
+                        
+                    
+                </h1>
+                
+                    January 1, 0001 &middot;&nbsp;4 min read
+                
+            </div>
+        </div>
+    </section>
+
+
+<div class="container">
+    <div class="section">
+    
+
+<div class="columns">
+    <div class="column is-9">
+        <div class="tile is-child box">
+            <div class="content">
+                
+
+<h1 id="building-a-jenkins-pipeline-for-the-blog">Building a Jenkins Pipeline for the Blog</h1>
+
+<p>Currently it&rsquo;s a pain to publish posts or edit this blog. I develop the blog locally with the built in web server that comes with Hugo. Then once I&rsquo;m done making a post or modifying the site I run <code>hugo</code> and it compiles all my markdown into HTML. Once compiled I push my site to GitHub. From this point I have to manually pull the repo down, build a new docker image, push it, then deploy the new image as a function on OpenFaaS. Let&rsquo;s automate this with a Jenkins pipeline job. By the end of this I want the pipeline to watch my git repo for changes and then deploy the new blog function to OpenFaaS. I want to build this pipeline without using the faas-cli on OpenFaaS since the only piece I really need it for is updating the blog function on OpenFaaS.</p>
+
+<p>Lets break the pipeline down and figure out what stages we want:
+1. Git clone the repo.
+2. Copy the static files to the function folder.
+3. Build the Docker image for OpenFaaS.
+4. Push the Docker image to the private registry.
+5. Deploy the new function to OpenFaaS.
+6. Clean up our workspace.</p>
+
+<p>Now lets figure out each piece of the stage and then bring everything together. We will skip the pretty easy steps like cloning, copying files, and pushing the image.</p>
+
+<h2 id="build-the-docker-image-for-openfaas">Build the Docker Image for OpenFaaS</h2>
+
+<p>To deploy our site to OpenFaaS we need to build a new docker image every time our site changes. To do this I simply copied the build directory from my OpenFaaS function. This includes the Dockerfile, main.go, and our function folder. The function folder is where our web files will be stored. The resulting structure is this <a href="https://github.com/zbblanton/blog_pipeline">repository</a>.</p>
+
+<p>Once the file structure is setup correctly we can simple do a docker build from the shell. In my case:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">docker build -t localhost:5000/bt-blog .</code></pre></div>
+<h2 id="deploy-the-new-function-to-openfaas">Deploy the New Function to OpenFaaS</h2>
+
+<p>Since we don&rsquo;t want to install faas-cli we will need to manually make the call to the OpenFaaS API to update our blog function. Looking through the Swagger reference we can see this is a <code>PUT</code> call to <code>/system/functions</code> with a JSON payload in the body. The JSON will look like this for my blog:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+    <span style="color:#ff79c6">&#34;service&#34;</span>: <span style="color:#f1fa8c">&#34;blog&#34;</span>,
+    <span style="color:#ff79c6">&#34;image&#34;</span>: <span style="color:#f1fa8c">&#34;localhost:5000/bt-blog&#34;</span>,
+    <span style="color:#ff79c6">&#34;labels&#34;</span>: {
+        <span style="color:#ff79c6">&#34;com.openfaas.scale.zero&#34;</span>: <span style="color:#f1fa8c">&#34;true&#34;</span>
+    }
+}</code></pre></div>
+<p>OpenFaaS also requires API authentication in the header. I store the token in a Jenkins credential as secret text and call it <code>openfaasPass</code>. In the pipeline this gets saved as an environment variable and is used in the script to authenticate.</p>
+
+<p>So lets actually make the script to call the API with curl:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-groovy" data-lang="groovy">reqJSON <span style="color:#ff79c6">=</span> <span style="color:#f1fa8c">&#39;&#39;&#39;
+</span><span style="color:#f1fa8c">        {
+</span><span style="color:#f1fa8c">            &#34;service&#34;: &#34;blog&#34;,
+</span><span style="color:#f1fa8c">            &#34;image&#34;: &#34;localhost:5000/bt-blog&#34;,
+</span><span style="color:#f1fa8c">            &#34;labels&#34;: {
+</span><span style="color:#f1fa8c">                &#34;com.openfaas.scale.zero&#34;: &#34;true&#34;
+</span><span style="color:#f1fa8c">            }
+</span><span style="color:#f1fa8c">        }
+</span><span style="color:#f1fa8c">        &#39;&#39;&#39;</span>
+resp <span style="color:#ff79c6">=</span> sh<span style="color:#ff79c6">(</span><span style="color:#8be9fd;font-style:italic">returnStdout:</span> <span style="color:#ff79c6">true</span><span style="color:#ff79c6">,</span> <span style="color:#8be9fd;font-style:italic">script:</span> <span style="color:#f1fa8c">&#34;curl -o /dev/null -s -w &#39;%{http_code}&#39; -X PUT http://192.168.0.10:31112/system/functions -H &#39;authorization: Basic &#34;</span> <span style="color:#ff79c6">+</span> env<span style="color:#ff79c6">.</span><span style="color:#50fa7b">OPENFAAS_PASS</span> <span style="color:#ff79c6">+</span> <span style="color:#f1fa8c">&#34;&#39; -d &#39;&#34;</span> <span style="color:#ff79c6">+</span> reqJSON <span style="color:#ff79c6">+</span> <span style="color:#f1fa8c">&#34;&#39;&#34;</span><span style="color:#ff79c6">).</span><span style="color:#50fa7b">trim</span><span style="color:#ff79c6">()</span>
+<span style="color:#ff79c6">if</span> <span style="color:#ff79c6">(</span>resp <span style="color:#ff79c6">!=</span> <span style="color:#f1fa8c">&#34;200&#34;</span> <span style="color:#ff79c6">&amp;&amp;</span> resp <span style="color:#ff79c6">!=</span> <span style="color:#f1fa8c">&#34;201&#34;</span> <span style="color:#ff79c6">&amp;&amp;</span> resp <span style="color:#ff79c6">!=</span> <span style="color:#f1fa8c">&#34;202&#34;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+    error<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#34;Updating function failed. Status code: &#34;</span> <span style="color:#ff79c6">+</span> resp<span style="color:#ff79c6">)</span>
+<span style="color:#ff79c6">}</span>
+echo resp</code></pre></div>
+<p>In the above script we set the return of curl as the status code and then check if it&rsquo;s successful. If it&rsquo;s not then stop the build.</p>
+
+<h2 id="building-the-pipeline">Building the Pipeline</h2>
+
+<p>Now let&rsquo;s actually tie everything together into a <code>Jenkinsfile</code>.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-groovy" data-lang="groovy">pipeline <span style="color:#ff79c6">{</span>
+    agent any
+    triggers <span style="color:#ff79c6">{</span>
+        pollSCM<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;*/1 * * * *&#39;</span><span style="color:#ff79c6">)</span>
+    <span style="color:#ff79c6">}</span>
+    environment <span style="color:#ff79c6">{</span>
+        OPENFAAS_PASS <span style="color:#ff79c6">=</span> credentials<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;openfaasPass&#39;</span><span style="color:#ff79c6">)</span>
+    <span style="color:#ff79c6">}</span>
+    stages <span style="color:#ff79c6">{</span>
+        stage<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;Clone Blog Repo&#39;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+            steps <span style="color:#ff79c6">{</span>
+                dir<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;blog&#39;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+                    git <span style="color:#f1fa8c">&#39;https://github.com/zbblanton/blog&#39;</span>
+                <span style="color:#ff79c6">}</span>                
+            <span style="color:#ff79c6">}</span>
+        <span style="color:#ff79c6">}</span>
+        stage<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;Copy Static Files&#39;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+            steps <span style="color:#ff79c6">{</span>
+                dir<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;function&#39;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+                    sh <span style="color:#f1fa8c">&#39;cp -R ../blog/public .&#39;</span>
+                <span style="color:#ff79c6">}</span>
+            <span style="color:#ff79c6">}</span>
+        <span style="color:#ff79c6">}</span>
+        stage<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;Build New Function Image&#39;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+            steps <span style="color:#ff79c6">{</span>
+                sh <span style="color:#f1fa8c">&#39;docker build -t localhost:5000/bt-blog .&#39;</span>
+            <span style="color:#ff79c6">}</span>
+        <span style="color:#ff79c6">}</span>
+        stage<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;Push New Image&#39;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+            steps <span style="color:#ff79c6">{</span>
+                sh <span style="color:#f1fa8c">&#39;docker push localhost:5000/bt-blog:latest&#39;</span>
+            <span style="color:#ff79c6">}</span>
+        <span style="color:#ff79c6">}</span>
+        stage<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;Deploy New Function&#39;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+            steps <span style="color:#ff79c6">{</span>
+                script <span style="color:#ff79c6">{</span>
+                    reqJSON <span style="color:#ff79c6">=</span> <span style="color:#f1fa8c">&#39;&#39;&#39;
+</span><span style="color:#f1fa8c">                    {
+</span><span style="color:#f1fa8c">                        &#34;service&#34;: &#34;blog&#34;,
+</span><span style="color:#f1fa8c">                        &#34;image&#34;: &#34;localhost:5000/bt-blog&#34;,
+</span><span style="color:#f1fa8c">                        &#34;labels&#34;: {
+</span><span style="color:#f1fa8c">                            &#34;com.openfaas.scale.zero&#34;: &#34;true&#34;
+</span><span style="color:#f1fa8c">                        }
+</span><span style="color:#f1fa8c">                    }
+</span><span style="color:#f1fa8c">                    &#39;&#39;&#39;</span>
+                    resp <span style="color:#ff79c6">=</span> sh<span style="color:#ff79c6">(</span><span style="color:#8be9fd;font-style:italic">returnStdout:</span> <span style="color:#ff79c6">true</span><span style="color:#ff79c6">,</span> <span style="color:#8be9fd;font-style:italic">script:</span> <span style="color:#f1fa8c">&#34;curl -o /dev/null -s -w &#39;%{http_code}&#39; -X PUT http://192.168.0.10:31112/system/functions -H &#39;authorization: Basic &#34;</span> <span style="color:#ff79c6">+</span> env<span style="color:#ff79c6">.</span><span style="color:#50fa7b">OPENFAAS_PASS</span> <span style="color:#ff79c6">+</span> <span style="color:#f1fa8c">&#34;&#39; -d &#39;&#34;</span> <span style="color:#ff79c6">+</span> reqJSON <span style="color:#ff79c6">+</span> <span style="color:#f1fa8c">&#34;&#39;&#34;</span><span style="color:#ff79c6">).</span><span style="color:#50fa7b">trim</span><span style="color:#ff79c6">()</span>
+                    <span style="color:#ff79c6">if</span> <span style="color:#ff79c6">(</span>resp <span style="color:#ff79c6">!=</span> <span style="color:#f1fa8c">&#34;200&#34;</span> <span style="color:#ff79c6">&amp;&amp;</span> resp <span style="color:#ff79c6">!=</span> <span style="color:#f1fa8c">&#34;201&#34;</span> <span style="color:#ff79c6">&amp;&amp;</span> resp <span style="color:#ff79c6">!=</span> <span style="color:#f1fa8c">&#34;202&#34;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+                        error<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#34;Updating function failed. Status code: &#34;</span> <span style="color:#ff79c6">+</span> resp<span style="color:#ff79c6">)</span>
+                    <span style="color:#ff79c6">}</span>
+                    echo resp
+                <span style="color:#ff79c6">}</span>
+            <span style="color:#ff79c6">}</span>
+        <span style="color:#ff79c6">}</span>
+        stage<span style="color:#ff79c6">(</span><span style="color:#f1fa8c">&#39;Clean Workspacee&#39;</span><span style="color:#ff79c6">)</span> <span style="color:#ff79c6">{</span>
+            steps <span style="color:#ff79c6">{</span>
+                cleanWs<span style="color:#ff79c6">()</span>
+            <span style="color:#ff79c6">}</span>
+        <span style="color:#ff79c6">}</span>
+    <span style="color:#ff79c6">}</span>
+<span style="color:#ff79c6">}</span></code></pre></div>
+<p>You can see from the code I use <code>pollSCM('*/1 * * * *')</code> to check our repo every minute for changes.</p>
+
+<h2 id="pitfalls">Pitfalls</h2>
+
+<p>The golang template for OpenFaaS is copied into the repo. Therefore it won&rsquo;t be updated periodically. This is easily fixed by manually pulling down the template from git but it&rsquo;s not something I&rsquo;m worried about at the moment.</p>
+
+<h2 id="improvements">Improvements</h2>
+
+<p>Sometimes there are caching issues with CloudFlare and the blog in which I end up having to purge the cache. This could be a step to introduce later on.</p>
+
+            </div>
+        </div>
+    </div>
+    <div class="column is-3">
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Tags</h1>
+        <div class="tags">
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/cloudflare">cloudflare</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/go">go</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/golang">golang</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/kubernetes">kubernetes</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/openfaas">openfaas</a></span>
+        
+        </div>          
+    </div>
+</div><br>
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Recent posts</h1>
+        
+            <h1><a href="http:///blantontechnology.com/2019/setting-up-cloudflare-dynamic-dns-on-kubernetes/">Setting Up Cloudflare Dynamic Dns on Kubernetes</a></h1>
+            <time class="has-text-grey-light is-size-7">7 January 2019</time>
+        
+            <h1><a href="http:///blantontechnology.com/2019/building-a-web-server-on-openfaas/">Building a Web Server on OpenFaaS</a></h1>
+            <time class="has-text-grey-light is-size-7">6 January 2019</time>
+        
+            <h1><a href="http:///blantontechnology.com/1/building-a-jenkins-pipeline-for-the-blog/"></a></h1>
+            <time class="has-text-grey-light is-size-7">1 January 1</time>
+        
+    </div>
+</div>
+    <br>
+                
+
+
+    
+<br>
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Archives</h1>
+        
+            <a href="http:///blantontechnology.com/archives/2019">2019</a> (2)<br>
+        
+            <a href="http:///blantontechnology.com/archives/0001">0001</a> (1)<br>
+        
+    </div>
+</div>
+
+    </div>
+</div>
+
+
+    </div>
+</div>
+
+<footer class="footer has-background-grey-darker has-text-white">
+    <div class="content has-text-centered">
+        <p>
+            <span class="icon is-large"><a href="https://www.linkedin.com/in/zacharyblanton/" class="mysocial"><i class="fab fa-linkedin fa-3x"></i></a></span>&nbsp;&nbsp;
+            <span class="icon is-large"><a href="https://github.com/zbblanton" class="mysocial"><i class="fab fa-github fa-3x"></i></a></span>&nbsp;&nbsp;
+            <br><br>
+            Copyright &copy; Blanton Technology 2019
+        </p>
+    </div>
+</footer>
+
+<script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
+</body>
+</html>

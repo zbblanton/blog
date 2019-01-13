@@ -6,7 +6,7 @@
     <description>Recent content in Tags on Blanton Technology</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 07 Jan 2019 05:03:36 -0500</lastBuildDate>
+    <lastBuildDate>Sat, 12 Jan 2019 21:16:02 -0500</lastBuildDate>
     
         <atom:link href="http:///blantontechnology.com/tags/index.xml" rel="self" type="application/rss+xml" />
     
@@ -14,7 +14,7 @@
     <item>
       <title>Cloudflare</title>
       <link>http:///blantontechnology.com/tags/cloudflare/</link>
-      <pubDate>Mon, 07 Jan 2019 05:03:36 -0500</pubDate>
+      <pubDate>Sat, 12 Jan 2019 21:16:02 -0500</pubDate>
       
       <guid>http:///blantontechnology.com/tags/cloudflare/</guid>
       <description></description>
@@ -35,6 +35,24 @@
       <pubDate>Mon, 07 Jan 2019 05:03:36 -0500</pubDate>
       
       <guid>http:///blantontechnology.com/tags/golang/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Groovy</title>
+      <link>http:///blantontechnology.com/tags/groovy/</link>
+      <pubDate>Sat, 12 Jan 2019 21:16:02 -0500</pubDate>
+      
+      <guid>http:///blantontechnology.com/tags/groovy/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Jenkins</title>
+      <link>http:///blantontechnology.com/tags/jenkins/</link>
+      <pubDate>Sat, 12 Jan 2019 21:16:02 -0500</pubDate>
+      
+      <guid>http:///blantontechnology.com/tags/jenkins/</guid>
       <description></description>
     </item>
     

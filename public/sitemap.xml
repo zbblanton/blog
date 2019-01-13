@@ -3,6 +3,11 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>http:///blantontechnology.com/2019/building-a-jenkins-pipeline-for-the-blog/</loc>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
+  </url>
+  
+  <url>
     <loc>http:///blantontechnology.com/2019/setting-up-cloudflare-dynamic-dns-on-kubernetes/</loc>
     <lastmod>2019-01-07T05:03:36-05:00</lastmod>
   </url>
@@ -19,25 +24,25 @@
   
   <url>
     <loc>http:///blantontechnology.com/archives/2019/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>http:///blantontechnology.com/archives/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>http:///blantontechnology.com/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>http:///blantontechnology.com/tags/cloudflare/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -50,6 +55,18 @@
   <url>
     <loc>http:///blantontechnology.com/tags/golang/</loc>
     <lastmod>2019-01-07T05:03:36-05:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/groovy/</loc>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/jenkins/</loc>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -67,13 +84,13 @@
   
   <url>
     <loc>http:///blantontechnology.com/post/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>http:///blantontechnology.com/tags/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
     <priority>0</priority>
   </url>
   

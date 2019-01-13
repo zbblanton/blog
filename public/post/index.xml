@@ -6,10 +6,19 @@
     <description>Recent content in Posts on Blanton Technology</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 07 Jan 2019 05:03:36 -0500</lastBuildDate>
+    <lastBuildDate>Sat, 12 Jan 2019 21:16:02 -0500</lastBuildDate>
     
         <atom:link href="http:///blantontechnology.com/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Building a Jenkins Pipeline for the Blog</title>
+      <link>http:///blantontechnology.com/2019/building-a-jenkins-pipeline-for-the-blog/</link>
+      <pubDate>Sat, 12 Jan 2019 21:16:02 -0500</pubDate>
+      
+      <guid>http:///blantontechnology.com/2019/building-a-jenkins-pipeline-for-the-blog/</guid>
+      <description>Building a Jenkins Pipeline for the Blog Currently it&amp;rsquo;s a pain to publish posts or edit this blog. I develop the blog locally with the built in web server that comes with Hugo. Then once I&amp;rsquo;m done making a post or modifying the site I run hugo and it compiles all my markdown into HTML. Once compiled I push my site to GitHub. From this point I have to manually pull the repo down, build a new docker image, push it, then deploy the new image as a function on OpenFaaS.</description>
+    </item>
     
     <item>
       <title>Setting Up Cloudflare Dynamic Dns on Kubernetes</title>
