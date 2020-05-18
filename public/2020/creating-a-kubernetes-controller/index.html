@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Blanton Technology  | Creating a Kubernetes Controller</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css" />
+    <link rel="stylesheet" href="http:///blantontechnology.com/css/blog.css" />
+    
+</head>
+<body>
+
+    
+    <nav class="navbar is-fixed-top" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="http:///blantontechnology.com">Home</a>
+            
+            <a class="navbar-item" href="https://www.linkedin.com/in/zacharyblanton/">About</a>            
+        </div>
+    </nav>
+    
+
+    
+    <section class="hero is-info is-medium">
+        <div class="hero-body" style="background-image: url(http:///blantontechnology.com/img/bg-blog.jpg);">
+            <div class="container has-text-centered">
+                <br>
+                <h1 class="title is-size-1">
+                    
+                        Creating a Kubernetes Controller
+                    
+                </h1>
+                
+                    May 11, 2020 &middot;&nbsp;10 min read
+                
+            </div>
+        </div>
+    </section>
+
+
+<div class="container">
+    <div class="section">
+    
+
+<div class="columns">
+    <div class="column is-9">
+        <div class="tile is-child box">
+            <div class="content">
+                <h1 id="creating-a-kubernetes-controller">Creating a Kubernetes Controller</h1>
+<p>Lately I&rsquo;ve been trying to get deeper into Kubernetes whether I&rsquo;m learning best practices or trying to develop tools on and for the platform. This lead me down the road to learning how to create a controller for Kubernetes. Turns out, this wasn&rsquo;t a very smooth road.</p>
+<p>The current implementation for the controller is located at <a href="https://github.com/zbblanton/cloudflare_dynamic_dns_controller">https://github.com/zbblanton/cloudflare_dynamic_dns_controller</a>.</p>
+<h2 id="the-goal">The Goal</h2>
+<p>I&rsquo;ve been wanting to build a controller for Kubernetes that runs in the cluster but didn&rsquo;t have any ideas until I thought of doing some simple dynamic DNS for Cloudflare. Honestly there is probably something out there that does something similar like the awesome <a href="https://github.com/kubernetes-sigs/external-dns">external-dns</a> but this project for more about learning how to build a controller.</p>
+<p>The goal is to build a Kubernetes controller that does two things, watch my public IP and sync my public IP with Cloudflare records that are given by either a service or an ingress resource annotations. So for example, if we have a service with the correct annotations for site1.example.com then the controller will be responsible for making sure the A record in Cloudflare has my current public IP.</p>
+<h2 id="watching-my-public-ip">Watching my public IP</h2>
+<p>Before I talk about how I built my controller. Let&rsquo;s quickly take a look at how I get my public IP for Cloudflare to use.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">getPublicIP</span>() (ip <span style="color:#8be9fd">string</span>, err <span style="color:#8be9fd">error</span>) {
+	resp, err <span style="color:#ff79c6">:=</span> http.<span style="color:#50fa7b">Get</span>(<span style="color:#f1fa8c">&#34;http://api.ipify.org&#34;</span>)
+	<span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+		<span style="color:#ff79c6">return</span> <span style="color:#f1fa8c">&#34;&#34;</span>, err
+	}
+	publicIPRaw, err <span style="color:#ff79c6">:=</span> ioutil.<span style="color:#50fa7b">ReadAll</span>(resp.Body)
+	resp.Body.<span style="color:#50fa7b">Close</span>()
+	<span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+		<span style="color:#ff79c6">return</span> <span style="color:#f1fa8c">&#34;&#34;</span>, err
+	}
+
+	<span style="color:#ff79c6">return</span> <span style="color:#8be9fd;font-style:italic">string</span>(publicIPRaw), <span style="color:#ff79c6">nil</span>
+}
+</code></pre></div><p>From the code above I simply do a get request to api.ipify.org to retrieve my public IP and then return it as a string. I keep the IP a string because I don&rsquo;t really ever have a need to convert it to an IP in go. This could be changed to provide better verification for IP&rsquo;s.</p>
+<p>Not only do I need my public IP I also need a tread-safe way to retrieve it since we will be using multiple go routines that could access the public IP:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#8be9fd;font-style:italic">type</span> CurrentIP <span style="color:#8be9fd;font-style:italic">struct</span> {
+	ip  <span style="color:#8be9fd">string</span>
+	mux sync.Mutex
+}
+
+<span style="color:#8be9fd;font-style:italic">func</span> (c <span style="color:#ff79c6">*</span>CurrentIP) <span style="color:#50fa7b">Get</span>() <span style="color:#8be9fd">string</span> {
+	c.mux.<span style="color:#50fa7b">Lock</span>()
+	<span style="color:#ff79c6">defer</span> c.mux.<span style="color:#50fa7b">Unlock</span>()
+	<span style="color:#ff79c6">return</span> c.ip
+}
+
+<span style="color:#8be9fd;font-style:italic">func</span> (c <span style="color:#ff79c6">*</span>CurrentIP) <span style="color:#50fa7b">Set</span>(ip <span style="color:#8be9fd">string</span>) {
+	c.mux.<span style="color:#50fa7b">Lock</span>()
+	c.ip = ip
+	c.mux.<span style="color:#50fa7b">Unlock</span>()
+}
+</code></pre></div><p>Finally I need to watch the IP for changes:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#8be9fd;font-style:italic">func</span> <span style="color:#50fa7b">watchPublicIP</span>(currentIP <span style="color:#ff79c6">*</span>CurrentIP) {
+	ticker <span style="color:#ff79c6">:=</span> time.<span style="color:#50fa7b">NewTicker</span>(<span style="color:#bd93f9">30</span> <span style="color:#ff79c6">*</span> time.Second)
+	<span style="color:#ff79c6">for</span> {
+		publicIP, err <span style="color:#ff79c6">:=</span> <span style="color:#50fa7b">getPublicIP</span>()
+		<span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+			<span style="color:#8be9fd;font-style:italic">println</span>(<span style="color:#f1fa8c">&#34;Could not retrieve IP. Retry on next check...&#34;</span>)
+		}
+		<span style="color:#ff79c6">if</span> currentIP.<span style="color:#50fa7b">Get</span>() <span style="color:#ff79c6">!=</span> publicIP {
+			currentIP.<span style="color:#50fa7b">Set</span>(publicIP)
+		}
+		<span style="color:#8be9fd;font-style:italic">println</span>(currentIP.<span style="color:#50fa7b">Get</span>())
+		<span style="color:#ff79c6">&lt;-</span>ticker.C
+	}
+}
+</code></pre></div><p>The code above creates a ticker that runs the for loop every 30 seconds to check if the current saved IP is equal to the new IP.</p>
+<h2 id="what-is-a-controller-in-kubernetes">What is a controller in Kubernetes?</h2>
+<p>A Kubernetes controller is usually something that watches Kubernetes state and then does really anything you want. That&rsquo;s pretty vague but you can do whatever you want with the controller. An example would be the <a href="https://kubernetes-sigs.github.io/aws-alb-ingress-controller/">aws ingress controller</a> that always watches for ingress or service resources that have certain annotation in the metadata and then creates a load balancer using the annotations values.</p>
+<p>The specific type of controller implementation I will talk about is the <a href="https://github.com/kubernetes/client-go">client-go</a> library from Kubernetes. It&rsquo;s used in by the Kubernetes team to create <a href="https://kubernetes.io/blog/2018/01/introducing-client-go-version-6/">kubectl</a> and used by outside developers to create external tools like the Prometheus operator. This library provides tools that make it sort of easy to create controllers. I say sorta because I struggled for a bit.</p>
+<h2 id="how-i-built-my-controller">How I built my controller</h2>
+<p>I read several articles and tutorials about controllers and spent hours looking at the client-go source code along with other examples. The best example I found and ended up designing around was the <a href="https://github.com/kubernetes/client-go/tree/master/examples/workqueue">workqueue example</a> from the client-go library. I recommend reading through the code to understand what&rsquo;s happening. Long story short this pretty much creates a copy of all the resources you want to watch, adds them to the queue, and then loops through the queue and decides if any action needs be done.</p>
+<p>If you want to get a deeper understanding then take a look at this the diagram and explanation at <a href="https://github.com/kubernetes/sample-controller/blob/master/docs/controller-client-go.md">client-go</a></p>
+<p>I&rsquo;m going to show how I modified the workqueue example to work for me to build my controller whether it&rsquo;s a good way or not.</p>
+<p>Before I started, I needed to figure out how I wanted to know if a record needed to be created in Cloudflare. I decided that I wanted to watch the service and ingress resources that had the annotations below.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#ff79c6">cloudflare-dynamic-dns.alpha.kubernetes.io/hostname</span>: <span style="color:#f1fa8c">&#34;hello.example.com&#34;</span>
+<span style="color:#ff79c6">cloudflare-dynamic-dns.alpha.kubernetes.io/proxied</span>: <span style="color:#f1fa8c">&#34;true&#34;</span>
+</code></pre></div><p>With this I could ask myself how the controller looks from the outside. The logic is pretty simple. Every time a service or ingress resource gets created/updated/deleted and has the annotations above, sync the Cloudflare DNS record with the hostname and also use Cloudflares proxy if needed. From there I could start to create the reflector. The reflector will watch the Kubernetes API for resources matching what you define. The workqueue example watched for pod resources. For me, I want to watch the service and ingress resources so I needed to actually create two reflectors.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go">serviceListWatcher <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">NewListWatchFromClient</span>(clientset.<span style="color:#50fa7b">CoreV1</span>().<span style="color:#50fa7b">RESTClient</span>(), <span style="color:#f1fa8c">&#34;services&#34;</span>, <span style="color:#f1fa8c">&#34;&#34;</span>, fields.<span style="color:#50fa7b">Everything</span>())
+ingressListWatcher <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">NewListWatchFromClient</span>(clientset.<span style="color:#50fa7b">NetworkingV1beta1</span>().<span style="color:#50fa7b">RESTClient</span>(), <span style="color:#f1fa8c">&#34;ingresses&#34;</span>, <span style="color:#f1fa8c">&#34;&#34;</span>, fields.<span style="color:#50fa7b">Everything</span>())
+</code></pre></div><p>Next, I needed to create the indexers and informers which pretty much just adds the resource name into the queue to be worked on later by the worker loop. In the workqueue example a couple callback functions were created to add, update, delete items from the cache. It uses the key name structure <code>namespace/name</code>. For the key name I decided to use the format <code>resourceType/namespace/name</code>, so for example <code>service/example-namespace/helloworld</code>. This allows me quickly distinguish later what resource type we are using. As with the reflectors above I have to create an indexer and informer for both the service and ingress resource. The code could be cleaned up some but looks like:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#6272a4">// create the workqueue
+</span><span style="color:#6272a4"></span>queue <span style="color:#ff79c6">:=</span> workqueue.<span style="color:#50fa7b">NewRateLimitingQueue</span>(workqueue.<span style="color:#50fa7b">DefaultControllerRateLimiter</span>())
+
+serviceIndexer, serviceInformer <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">NewIndexerInformer</span>(serviceListWatcher, <span style="color:#ff79c6">&amp;</span>v1.Service{}, <span style="color:#bd93f9">60</span><span style="color:#ff79c6">*</span>time.Second, cache.ResourceEventHandlerFuncs{
+    AddFunc: <span style="color:#8be9fd;font-style:italic">func</span>(obj <span style="color:#8be9fd;font-style:italic">interface</span>{}) {
+        key, err <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">MetaNamespaceKeyFunc</span>(obj)
+        <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">==</span> <span style="color:#ff79c6">nil</span> {
+            queue.<span style="color:#50fa7b">Add</span>(<span style="color:#f1fa8c">&#34;service/&#34;</span> <span style="color:#ff79c6">+</span> key)
+        }
+    },
+    UpdateFunc: <span style="color:#8be9fd;font-style:italic">func</span>(old <span style="color:#8be9fd;font-style:italic">interface</span>{}, new <span style="color:#8be9fd;font-style:italic">interface</span>{}) {
+        key, err <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">MetaNamespaceKeyFunc</span>(new)
+        <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">==</span> <span style="color:#ff79c6">nil</span> {
+            queue.<span style="color:#50fa7b">Add</span>(<span style="color:#f1fa8c">&#34;service/&#34;</span> <span style="color:#ff79c6">+</span> key)
+        }
+    },
+    DeleteFunc: <span style="color:#8be9fd;font-style:italic">func</span>(obj <span style="color:#8be9fd;font-style:italic">interface</span>{}) {
+        <span style="color:#6272a4">// IndexerInformer uses a delta queue, therefore for deletes we have to use this
+</span><span style="color:#6272a4"></span>        <span style="color:#6272a4">// key function.
+</span><span style="color:#6272a4"></span>        key, err <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">DeletionHandlingMetaNamespaceKeyFunc</span>(obj)
+        <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">==</span> <span style="color:#ff79c6">nil</span> {
+            queue.<span style="color:#50fa7b">Add</span>(<span style="color:#f1fa8c">&#34;service/&#34;</span> <span style="color:#ff79c6">+</span> key)
+        }
+    },
+}, cache.Indexers{})
+
+ingressIndexer, ingressInformer <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">NewIndexerInformer</span>(ingressListWatcher, <span style="color:#ff79c6">&amp;</span>v1beta1.Ingress{}, <span style="color:#bd93f9">60</span><span style="color:#ff79c6">*</span>time.Second, cache.ResourceEventHandlerFuncs{
+    AddFunc: <span style="color:#8be9fd;font-style:italic">func</span>(obj <span style="color:#8be9fd;font-style:italic">interface</span>{}) {
+        key, err <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">MetaNamespaceKeyFunc</span>(obj)
+        <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">==</span> <span style="color:#ff79c6">nil</span> {
+            queue.<span style="color:#50fa7b">Add</span>(<span style="color:#f1fa8c">&#34;ingress/&#34;</span> <span style="color:#ff79c6">+</span> key)
+        }
+    },
+    UpdateFunc: <span style="color:#8be9fd;font-style:italic">func</span>(old <span style="color:#8be9fd;font-style:italic">interface</span>{}, new <span style="color:#8be9fd;font-style:italic">interface</span>{}) {
+        key, err <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">MetaNamespaceKeyFunc</span>(new)
+        <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">==</span> <span style="color:#ff79c6">nil</span> {
+            queue.<span style="color:#50fa7b">Add</span>(<span style="color:#f1fa8c">&#34;ingress/&#34;</span> <span style="color:#ff79c6">+</span> key)
+        }
+    },
+    DeleteFunc: <span style="color:#8be9fd;font-style:italic">func</span>(obj <span style="color:#8be9fd;font-style:italic">interface</span>{}) {
+        <span style="color:#6272a4">// IndexerInformer uses a delta queue, therefore for deletes we have to use this
+</span><span style="color:#6272a4"></span>        <span style="color:#6272a4">// key function.
+</span><span style="color:#6272a4"></span>        key, err <span style="color:#ff79c6">:=</span> cache.<span style="color:#50fa7b">DeletionHandlingMetaNamespaceKeyFunc</span>(obj)
+        <span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">==</span> <span style="color:#ff79c6">nil</span> {
+            queue.<span style="color:#50fa7b">Add</span>(<span style="color:#f1fa8c">&#34;ingress/&#34;</span> <span style="color:#ff79c6">+</span> key)
+        }
+    },
+}, cache.Indexers{})
+</code></pre></div><p>NOTE: The <code>60*time.Second</code> above is saying to resync the resources from the API every 60 seconds. So not only do I watch for new resources I also want to sync up to make sure nothing was changed or deleted.</p>
+<p>Moving on to the controller object, which is mostly the same from the workqueue example until <code>processNextItem</code>. Here I actually start my own logic and call <code>cloudflareSync</code>.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#8be9fd;font-style:italic">func</span> (c <span style="color:#ff79c6">*</span>Controller) <span style="color:#50fa7b">processNextItem</span>() <span style="color:#8be9fd">bool</span> {
+	<span style="color:#6272a4">// Wait until there is a new item in the working queue
+</span><span style="color:#6272a4"></span>	key, quit <span style="color:#ff79c6">:=</span> c.queue.<span style="color:#50fa7b">Get</span>()
+	<span style="color:#ff79c6">if</span> quit {
+		<span style="color:#ff79c6">return</span> <span style="color:#ff79c6">false</span>
+	}
+
+	<span style="color:#ff79c6">defer</span> c.queue.<span style="color:#50fa7b">Done</span>(key)
+
+	err <span style="color:#ff79c6">:=</span> c.<span style="color:#50fa7b">cloudflareSync</span>(key.(<span style="color:#8be9fd">string</span>))
+	c.<span style="color:#50fa7b">handleErr</span>(err, key)
+
+	<span style="color:#ff79c6">return</span> <span style="color:#ff79c6">true</span>
+}
+
+<span style="color:#8be9fd;font-style:italic">func</span> (c <span style="color:#ff79c6">*</span>Controller) <span style="color:#50fa7b">runWorker</span>() {
+	<span style="color:#ff79c6">for</span> c.<span style="color:#50fa7b">processNextItem</span>() {
+	}
+}
+</code></pre></div><p>You can see that each item gets popped from the queue then <code>err := c.cloudflareSync(key.(string))</code> will actually process the item. This function is where the meat is. Maybe too much meat and could be broken down but whatever. From this code you can see that first I use the key name to decide what type the current resource is from the queue. So, if it starts with &ldquo;service&rdquo; I know that it will be a service resource and I can do a type assertion as I retrieve the updated resource from the Kubernetes API. Once I have the resource, I check the annotations to see if I want to skip this resource or if I should continue checking if the Cloudflare record needs to be changed or not.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#8be9fd;font-style:italic">func</span> (c <span style="color:#ff79c6">*</span>Controller) <span style="color:#50fa7b">cloudflareSync</span>(key <span style="color:#8be9fd">string</span>) <span style="color:#8be9fd">error</span> {
+	<span style="color:#8be9fd;font-style:italic">var</span> obj <span style="color:#8be9fd;font-style:italic">interface</span>{}
+	<span style="color:#8be9fd;font-style:italic">var</span> exists <span style="color:#8be9fd">bool</span>
+	<span style="color:#8be9fd;font-style:italic">var</span> err <span style="color:#8be9fd">error</span>
+
+	splitKey <span style="color:#ff79c6">:=</span> strings.<span style="color:#50fa7b">Split</span>(key, <span style="color:#f1fa8c">&#34;/&#34;</span>)
+	resource <span style="color:#ff79c6">:=</span> splitKey[<span style="color:#bd93f9">1</span>] <span style="color:#ff79c6">+</span> <span style="color:#f1fa8c">&#34;/&#34;</span> <span style="color:#ff79c6">+</span> splitKey[<span style="color:#bd93f9">2</span>]
+	<span style="color:#ff79c6">if</span> splitKey[<span style="color:#bd93f9">0</span>] <span style="color:#ff79c6">==</span> <span style="color:#f1fa8c">&#34;service&#34;</span> {
+		obj, exists, err = c.serviceIndexer.<span style="color:#50fa7b">GetByKey</span>(resource)
+	} <span style="color:#ff79c6">else</span> {
+		obj, exists, err = c.ingressIndexer.<span style="color:#50fa7b">GetByKey</span>(resource)
+	}
+
+	<span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+		klog.<span style="color:#50fa7b">Errorf</span>(<span style="color:#f1fa8c">&#34;Fetching object with key %s from store failed with %v&#34;</span>, key, err)
+		<span style="color:#ff79c6">return</span> err
+	}
+
+	<span style="color:#ff79c6">if</span> !exists {
+		fmt.<span style="color:#50fa7b">Printf</span>(<span style="color:#f1fa8c">&#34;Service %s does not exist anymore\n&#34;</span>, key)
+		c.<span style="color:#50fa7b">cloudflareDeleteRecordPair</span>(key)
+	} <span style="color:#ff79c6">else</span> {
+		<span style="color:#8be9fd;font-style:italic">var</span> annotations <span style="color:#8be9fd;font-style:italic">map</span>[<span style="color:#8be9fd">string</span>]<span style="color:#8be9fd">string</span>
+		<span style="color:#ff79c6">if</span> splitKey[<span style="color:#bd93f9">0</span>] <span style="color:#ff79c6">==</span> <span style="color:#f1fa8c">&#34;service&#34;</span> {
+			annotations = obj.(<span style="color:#ff79c6">*</span>v1.Service).<span style="color:#50fa7b">GetAnnotations</span>()
+		} <span style="color:#ff79c6">else</span> {
+			annotations = obj.(<span style="color:#ff79c6">*</span>v1beta1.Ingress).<span style="color:#50fa7b">GetAnnotations</span>()
+		}
+
+		<span style="color:#ff79c6">if</span> _, ok <span style="color:#ff79c6">:=</span> annotations[<span style="color:#f1fa8c">&#34;cloudflare-dynamic-dns.alpha.kubernetes.io/hostname&#34;</span>]; !ok {
+			fmt.<span style="color:#50fa7b">Printf</span>(<span style="color:#f1fa8c">&#34;Skipping: %v\n&#34;</span>, key)
+			<span style="color:#ff79c6">return</span> <span style="color:#ff79c6">nil</span>
+		}
+		hostname <span style="color:#ff79c6">:=</span> annotations[<span style="color:#f1fa8c">&#34;cloudflare-dynamic-dns.alpha.kubernetes.io/hostname&#34;</span>]
+
+		<span style="color:#6272a4">//Check if proxied is provided, if so convert to bool
+</span><span style="color:#6272a4"></span>		<span style="color:#8be9fd;font-style:italic">var</span> proxied <span style="color:#8be9fd">bool</span>
+		<span style="color:#ff79c6">if</span> _, ok <span style="color:#ff79c6">:=</span> annotations[<span style="color:#f1fa8c">&#34;cloudflare-dynamic-dns.alpha.kubernetes.io/proxied&#34;</span>]; ok {
+			proxied, err = strconv.<span style="color:#50fa7b">ParseBool</span>(annotations[<span style="color:#f1fa8c">&#34;cloudflare-dynamic-dns.alpha.kubernetes.io/proxied&#34;</span>])
+			<span style="color:#ff79c6">if</span> err <span style="color:#ff79c6">!=</span> <span style="color:#ff79c6">nil</span> {
+				fmt.<span style="color:#50fa7b">Printf</span>(<span style="color:#f1fa8c">&#34;Could not convert cloudflare-dynamic-dns.alpha.kubernetes.io/proxied to bool for %v\n&#34;</span>, key)
+				<span style="color:#ff79c6">return</span> <span style="color:#ff79c6">nil</span>
+			}
+		}
+
+		publicIP <span style="color:#ff79c6">:=</span> c.currentIP.<span style="color:#50fa7b">Get</span>()
+		c.<span style="color:#50fa7b">cloudflareSyncRecordPair</span>(key, hostname, publicIP, proxied)
+		fmt.<span style="color:#50fa7b">Printf</span>(<span style="color:#f1fa8c">&#34;Sync/Add/Update %v, hostname: %v, ip: %v\n&#34;</span>, key, hostname, publicIP)
+	}
+
+	<span style="color:#ff79c6">return</span> <span style="color:#ff79c6">nil</span>
+}
+</code></pre></div><p>Now I can pull everything together and create the controller. The controller is slightly modified to accept my public IP watcher and the Cloudflare API object.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go">cfAuthEmail <span style="color:#ff79c6">:=</span> os.<span style="color:#50fa7b">Getenv</span>(<span style="color:#f1fa8c">&#34;CF_AUTH_EMAIL&#34;</span>)
+cfAuthToken <span style="color:#ff79c6">:=</span> os.<span style="color:#50fa7b">Getenv</span>(<span style="color:#f1fa8c">&#34;CF_AUTH_TOKEN&#34;</span>)
+cfZoneID <span style="color:#ff79c6">:=</span> os.<span style="color:#50fa7b">Getenv</span>(<span style="color:#f1fa8c">&#34;CF_ZONE_ID&#34;</span>)
+cf <span style="color:#ff79c6">:=</span> <span style="color:#50fa7b">NewCloudflare</span>(cfAuthEmail, cfAuthToken, cfZoneID)
+
+<span style="color:#6272a4">//Start the public ip watcher and wait until we get an IP
+</span><span style="color:#6272a4"></span>currentIP <span style="color:#ff79c6">:=</span> CurrentIP{}
+<span style="color:#ff79c6">go</span> <span style="color:#50fa7b">watchPublicIP</span>(<span style="color:#ff79c6">&amp;</span>currentIP)
+<span style="color:#50fa7b">waitForPublicIP</span>(<span style="color:#ff79c6">&amp;</span>currentIP)
+    
+controller <span style="color:#ff79c6">:=</span> <span style="color:#50fa7b">NewController</span>(<span style="color:#ff79c6">&amp;</span>currentIP, cf, queue, serviceIndexer, serviceInformer, ingressIndexer, ingressInformer)
+
+stop <span style="color:#ff79c6">:=</span> <span style="color:#8be9fd;font-style:italic">make</span>(<span style="color:#8be9fd;font-style:italic">chan</span> <span style="color:#8be9fd;font-style:italic">struct</span>{})
+<span style="color:#ff79c6">defer</span> <span style="color:#8be9fd;font-style:italic">close</span>(stop)
+<span style="color:#ff79c6">go</span> controller.<span style="color:#50fa7b">Run</span>(<span style="color:#bd93f9">1</span>, stop)
+
+<span style="color:#6272a4">// Wait forever
+</span><span style="color:#6272a4"></span><span style="color:#ff79c6">select</span> {}
+</code></pre></div><p>I didn&rsquo;t talk here about all the Cloudflare functions. If you want to see the code look at <code>controller.go</code> and <code>cloudflare.go</code> on my <a href="https://github.com/zbblanton/cloudflare_dynamic_dns_controller">repo</a>.</p>
+<h1 id="building-the-controller">Building the Controller</h1>
+<p>Since this is Go I can easily create a Dockerfile to build and run the controller. I currently use Docker Hub to automated my builds.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-Dockerfile" data-lang="Dockerfile"><span style="color:#ff79c6">FROM</span><span style="color:#f1fa8c"> golang:alpine AS builder</span>
+
+<span style="color:#ff79c6">ENV</span> <span style="color:#8be9fd;font-style:italic">GO111MODULE</span><span style="color:#ff79c6">=</span>on
+<span style="color:#ff79c6">ENV</span> <span style="color:#8be9fd;font-style:italic">GOPATH</span><span style="color:#ff79c6">=</span><span style="color:#f1fa8c">&#34;&#34;</span>
+
+<span style="color:#ff79c6">WORKDIR</span><span style="color:#f1fa8c"> /app</span>
+
+<span style="color:#ff79c6">COPY</span> . .
+
+<span style="color:#ff79c6">RUN</span> go build -o controller .
+
+<span style="color:#ff79c6">FROM</span><span style="color:#f1fa8c"> alpine</span>
+
+<span style="color:#ff79c6">COPY</span> --from<span style="color:#ff79c6">=</span>builder /app/controller /app/
+
+<span style="color:#ff79c6">CMD</span> [<span style="color:#f1fa8c">&#34;./app/controller&#34;</span>]
+</code></pre></div><h1 id="deploying-the-controller">Deploying the Controller</h1>
+<p>I used environment variables to inject the configuration into the pod. The variables are from a Kubernetes secret:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">kubectl create secret -n cloudflare-dynamic-dns-controller generic cloudflare --from-literal<span style="color:#ff79c6">=</span><span style="color:#8be9fd;font-style:italic">email</span><span style="color:#ff79c6">=</span>INSERT-EMAIL --from-literal<span style="color:#ff79c6">=</span><span style="color:#8be9fd;font-style:italic">token</span><span style="color:#ff79c6">=</span>INSERT-TOKEN --from-literal<span style="color:#ff79c6">=</span><span style="color:#8be9fd;font-style:italic">zone</span><span style="color:#ff79c6">=</span>INSERT-ZONE-ID
+</code></pre></div><p>The code uses the client-go libraries built in functions to create a kube config file when running inside the cluster. This allows me to use a service account and RBAC to grant the exact permissions needed to run the controller in the cluster.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#282a36;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">---
+<span style="color:#ff79c6">apiVersion</span>: rbac.authorization.k8s.io/v1
+<span style="color:#ff79c6">kind</span>: ClusterRole
+<span style="color:#ff79c6">metadata</span>:
+  <span style="color:#ff79c6">labels</span>:
+    <span style="color:#ff79c6">app.kubernetes.io/name</span>: cloudflare-dynamic-dns-controller
+  <span style="color:#ff79c6">name</span>: cloudflare-dynamic-dns-controller
+<span style="color:#ff79c6">rules</span>:
+  - <span style="color:#ff79c6">apiGroups</span>:
+      - <span style="color:#f1fa8c">&#34;&#34;</span>
+      - extensions
+    <span style="color:#ff79c6">resources</span>:
+      - ingresses
+      - services
+    <span style="color:#ff79c6">verbs</span>:
+      - get
+      - list
+      - watch
+---
+<span style="color:#ff79c6">apiVersion</span>: rbac.authorization.k8s.io/v1
+<span style="color:#ff79c6">kind</span>: ClusterRoleBinding
+<span style="color:#ff79c6">metadata</span>:
+  <span style="color:#ff79c6">labels</span>:
+    <span style="color:#ff79c6">app.kubernetes.io/name</span>: cloudflare-dynamic-dns-controller
+  <span style="color:#ff79c6">name</span>: cloudflare-dynamic-dns-controller
+<span style="color:#ff79c6">roleRef</span>:
+  <span style="color:#ff79c6">apiGroup</span>: rbac.authorization.k8s.io
+  <span style="color:#ff79c6">kind</span>: ClusterRole
+  <span style="color:#ff79c6">name</span>: cloudflare-dynamic-dns-controller
+<span style="color:#ff79c6">subjects</span>:
+  - <span style="color:#ff79c6">kind</span>: ServiceAccount
+    <span style="color:#ff79c6">name</span>: cloudflare-dynamic-dns-controller
+    <span style="color:#ff79c6">namespace</span>: cloudflare-dynamic-dns-controller
+---
+<span style="color:#ff79c6">apiVersion</span>: v1
+<span style="color:#ff79c6">kind</span>: ServiceAccount
+<span style="color:#ff79c6">metadata</span>:
+  <span style="color:#ff79c6">labels</span>:
+    <span style="color:#ff79c6">app.kubernetes.io/name</span>: cloudflare-dynamic-dns-controller
+  <span style="color:#ff79c6">name</span>: cloudflare-dynamic-dns-controller
+---
+<span style="color:#ff79c6">apiVersion</span>: apps/v1
+<span style="color:#ff79c6">kind</span>: Deployment
+<span style="color:#ff79c6">metadata</span>:
+  <span style="color:#ff79c6">labels</span>:
+    <span style="color:#ff79c6">app.kubernetes.io/name</span>: cloudflare-dynamic-dns-controller
+  <span style="color:#ff79c6">name</span>: cloudflare-dynamic-dns-controller
+<span style="color:#ff79c6">spec</span>:
+  <span style="color:#ff79c6">selector</span>:
+    <span style="color:#ff79c6">matchLabels</span>:
+      <span style="color:#ff79c6">app.kubernetes.io/name</span>: cloudflare-dynamic-dns-controller
+  <span style="color:#ff79c6">template</span>:
+    <span style="color:#ff79c6">metadata</span>:
+      <span style="color:#ff79c6">labels</span>:
+        <span style="color:#ff79c6">app.kubernetes.io/name</span>: cloudflare-dynamic-dns-controller
+    <span style="color:#ff79c6">spec</span>:
+      <span style="color:#ff79c6">containers</span>:
+        - <span style="color:#ff79c6">name</span>: cloudflare-dynamic-dns-controller
+          <span style="color:#ff79c6">env</span>:
+            - <span style="color:#ff79c6">name</span>: CF_AUTH_EMAIL
+              <span style="color:#ff79c6">valueFrom</span>:
+                <span style="color:#ff79c6">secretKeyRef</span>:
+                  <span style="color:#ff79c6">name</span>: cloudflare
+                  <span style="color:#ff79c6">key</span>: email
+            - <span style="color:#ff79c6">name</span>: CF_AUTH_TOKEN
+              <span style="color:#ff79c6">valueFrom</span>:
+                <span style="color:#ff79c6">secretKeyRef</span>:
+                  <span style="color:#ff79c6">name</span>: cloudflare
+                  <span style="color:#ff79c6">key</span>: token
+            - <span style="color:#ff79c6">name</span>: CF_ZONE_ID
+              <span style="color:#ff79c6">valueFrom</span>:
+                <span style="color:#ff79c6">secretKeyRef</span>:
+                  <span style="color:#ff79c6">name</span>: cloudflare
+                  <span style="color:#ff79c6">key</span>: zone
+          <span style="color:#ff79c6">image</span>: docker.io/zbblanton/cloudflare_dynamic_dns_controller:latest
+      <span style="color:#ff79c6">serviceAccountName</span>: cloudflare-dynamic-dns-controller
+</code></pre></div><p>That&rsquo;s pretty much it! Looking through my code and the workqueue example should give you a decent idea on how to create a simple controller. I can&rsquo;t promise this is an idea way of creating controllers and I know pieces could be optimized but it worked for me.</p>
+<h2 id="some-thoughts">Some thoughts</h2>
+<ul>
+<li>The client-go library also provides several generators. I would like to eventually learn how to use those to create all the boilerplate code to help create controllers and even custom resource definitions.</li>
+<li>I noticed as I was writing this post that I could optimize how many keys are in the queue by moving the logic to check the annotations to the indexer and informer callback functions. This would mean that only the resources with the correct annotations are placed in the queue.</li>
+</ul>
+<h3 id="sources">Sources</h3>
+<p><a href="https://medium.com/@cloudark/kubernetes-custom-controllers-b6c7d0668fdf">https://medium.com/@cloudark/kubernetes-custom-controllers-b6c7d0668fdf</a>
+<a href="https://itnext.io/how-to-create-a-kubernetes-custom-controller-using-client-go-f36a7a7536cc">https://itnext.io/how-to-create-a-kubernetes-custom-controller-using-client-go-f36a7a7536cc</a>
+<a href="https://github.com/kubernetes/sample-controller">https://github.com/kubernetes/sample-controller</a>
+<a href="https://github.com/kubernetes/sample-controller/blob/master/docs/controller-client-go.md">https://github.com/kubernetes/sample-controller/blob/master/docs/controller-client-go.md</a>
+<a href="https://github.com/kubernetes/sample-controller/blob/master/docs/images/client-go-controller-interaction.jpeg">https://github.com/kubernetes/sample-controller/blob/master/docs/images/client-go-controller-interaction.jpeg</a>
+<a href="https://github.com/kubernetes/client-go">https://github.com/kubernetes/client-go</a>
+<a href="https://github.com/kubernetes/client-go/tree/master/examples/workqueue">https://github.com/kubernetes/client-go/tree/master/examples/workqueue</a>
+<a href="https://kubernetes.io/blog/2018/01/introducing-client-go-version-6/">https://kubernetes.io/blog/2018/01/introducing-client-go-version-6/</a></p>
+
+            </div>
+        </div>
+    </div>
+    <div class="column is-3">
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Tags</h1>
+        <div class="tags">
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/cloudflare">cloudflare</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/go">go</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/golang">golang</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/groovy">groovy</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/jenkins">jenkins</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/kubernetes">kubernetes</a></span>
+        
+            <span class="tag"><a href="http:///blantontechnology.com/tags/openfaas">openfaas</a></span>
+        
+        </div>          
+    </div>
+</div><br>
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Recent posts</h1>
+        
+            <h1><a href="http:///blantontechnology.com/2020/creating-a-kubernetes-controller/">Creating a Kubernetes Controller</a></h1>
+            <time class="has-text-grey-light is-size-7">11 May 2020</time>
+        
+            <h1><a href="http:///blantontechnology.com/2019/building-a-jenkins-pipeline-for-the-blog/">Building a Jenkins Pipeline for the Blog</a></h1>
+            <time class="has-text-grey-light is-size-7">12 January 2019</time>
+        
+            <h1><a href="http:///blantontechnology.com/2019/setting-up-cloudflare-dynamic-dns-on-kubernetes/">Setting Up Cloudflare Dynamic Dns on Kubernetes</a></h1>
+            <time class="has-text-grey-light is-size-7">7 January 2019</time>
+        
+            <h1><a href="http:///blantontechnology.com/2019/building-a-web-server-on-openfaas/">Building a Web Server on OpenFaaS</a></h1>
+            <time class="has-text-grey-light is-size-7">6 January 2019</time>
+        
+    </div>
+</div>
+    <br>
+                
+  
+
+
+
+<div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Related posts</h1>
+      
+      
+            <h1><a href="http:///blantontechnology.com/2019/setting-up-cloudflare-dynamic-dns-on-kubernetes/">Setting Up Cloudflare Dynamic Dns on Kubernetes</a></h1>
+            <time class="has-text-grey-light is-size-7">7 January 2019</time>
+      
+            <h1><a href="http:///blantontechnology.com/2019/building-a-web-server-on-openfaas/">Building a Web Server on OpenFaaS</a></h1>
+            <time class="has-text-grey-light is-size-7">6 January 2019</time>
+      
+    </div>
+</div>
+
+    
+<br>
+        <div class="card">
+    <div class="card-content">
+        <h1 class="title is-5">Archives</h1>
+        
+            <a href="http:///blantontechnology.com/archives/2020">2020</a> (1)<br>
+        
+            <a href="http:///blantontechnology.com/archives/2019">2019</a> (3)<br>
+        
+    </div>
+</div>
+
+    </div>
+</div>
+
+
+    </div>
+</div>
+
+<footer class="footer has-background-grey-darker has-text-white">
+    <div class="content has-text-centered">
+        <p>
+            <span class="icon is-large"><a href="https://www.linkedin.com/in/zacharyblanton/" class="mysocial"><i class="fab fa-linkedin fa-3x"></i></a></span>&nbsp;&nbsp;
+            <span class="icon is-large"><a href="https://github.com/zbblanton" class="mysocial"><i class="fab fa-github fa-3x"></i></a></span>&nbsp;&nbsp;
+            <br><br>
+            Copyright &copy; Blanton Technology 2020
+        </p>
+    </div>
+</footer>
+
+<script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
+</body>
+</html>

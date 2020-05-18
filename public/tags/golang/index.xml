@@ -1,15 +1,25 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Golang on Blanton Technology</title>
+    <title>golang on Blanton Technology</title>
     <link>http:///blantontechnology.com/tags/golang/</link>
-    <description>Recent content in Golang on Blanton Technology</description>
+    <description>Recent content in golang on Blanton Technology</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 07 Jan 2019 05:03:36 -0500</lastBuildDate>
+    <lastBuildDate>Mon, 11 May 2020 02:23:05 -0400</lastBuildDate>
     
         <atom:link href="http:///blantontechnology.com/tags/golang/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Creating a Kubernetes Controller</title>
+      <link>http:///blantontechnology.com/2020/creating-a-kubernetes-controller/</link>
+      <pubDate>Mon, 11 May 2020 02:23:05 -0400</pubDate>
+      
+      <guid>http:///blantontechnology.com/2020/creating-a-kubernetes-controller/</guid>
+      <description>Creating a Kubernetes Controller Lately I&amp;rsquo;ve been trying to get deeper into Kubernetes whether I&amp;rsquo;m learning best practices or trying to develop tools on and for the platform. This lead me down the road to learning how to create a controller for Kubernetes. Turns out, this wasn&amp;rsquo;t a very smooth road.
+The current implementation for the controller is located at https://github.com/zbblanton/cloudflare_dynamic_dns_controller.
+The Goal I&amp;rsquo;ve been wanting to build a controller for Kubernetes that runs in the cluster but didn&amp;rsquo;t have any ideas until I thought of doing some simple dynamic DNS for Cloudflare.</description>
+    </item>
     
     <item>
       <title>Setting Up Cloudflare Dynamic Dns on Kubernetes</title>

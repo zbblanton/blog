@@ -1,9 +1,69 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>http:///blantontechnology.com/archives/2020/</loc>
+    <lastmod>2020-05-11T02:23:05-04:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/archives/</loc>
+    <lastmod>2020-05-11T02:23:05-04:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/2020/creating-a-kubernetes-controller/</loc>
+    <lastmod>2020-05-11T02:23:05-04:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/go/</loc>
+    <lastmod>2020-05-11T02:23:05-04:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/golang/</loc>
+    <lastmod>2020-05-11T02:23:05-04:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/kubernetes/</loc>
+    <lastmod>2020-05-11T02:23:05-04:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/post/</loc>
+    <lastmod>2020-05-11T02:23:05-04:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/</loc>
+    <lastmod>2020-05-11T02:23:05-04:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/archives/2019/</loc>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
+  </url>
+  
+  <url>
     <loc>http:///blantontechnology.com/2019/building-a-jenkins-pipeline-for-the-blog/</loc>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/cloudflare/</loc>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/groovy/</loc>
+    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>http:///blantontechnology.com/tags/jenkins/</loc>
     <lastmod>2019-01-12T21:16:02-05:00</lastmod>
   </url>
   
@@ -18,80 +78,18 @@
   </url>
   
   <url>
+    <loc>http:///blantontechnology.com/tags/openfaas/</loc>
+    <lastmod>2019-01-06T04:02:20-05:00</lastmod>
+  </url>
+  
+  <url>
     <loc>http:///blantontechnology.com/about/</loc>
     <lastmod>2019-01-05T00:43:54-05:00</lastmod>
   </url>
   
   <url>
-    <loc>http:///blantontechnology.com/archives/2019/</loc>
-    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/archives/</loc>
-    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
     <loc>http:///blantontechnology.com/</loc>
-    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/tags/cloudflare/</loc>
-    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/tags/go/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/tags/golang/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/tags/groovy/</loc>
-    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/tags/jenkins/</loc>
-    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/tags/kubernetes/</loc>
-    <lastmod>2019-01-07T05:03:36-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/tags/openfaas/</loc>
-    <lastmod>2019-01-06T04:02:20-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/post/</loc>
-    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>http:///blantontechnology.com/tags/</loc>
-    <lastmod>2019-01-12T21:16:02-05:00</lastmod>
-    <priority>0</priority>
+    <lastmod>2019-01-05T00:43:54-05:00</lastmod>
   </url>
   
 </urlset>
