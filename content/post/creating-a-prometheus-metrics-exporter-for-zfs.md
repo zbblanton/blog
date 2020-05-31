@@ -4,6 +4,7 @@ date: 2020-05-30T23:01:34-04:00
 archives: "2020"
 tags: ["go", "golang", "prometheus", "exporter"]
 author: Zachary Blanton
+GHissueID: 2
 ---
 
 # Creating a Prometheus Exporter for Proxmox ZFS

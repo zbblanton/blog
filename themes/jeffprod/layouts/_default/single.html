@@ -7,6 +7,14 @@
                 {{ .Content }}
             </div>
         </div>
+        <div id="comments" class="tile is-child box">
+            <div class="content">
+            <h2>Comments</h2>
+            {{ with .Params.GHissueID }}
+                {{ partial "comments.html" $ }}
+            {{ end }}
+            </div>
+        </div>
     </div>
     <div class="column is-3">
         {{ partial "widget-tags.html" . }}<br>

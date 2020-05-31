@@ -475,10 +475,92 @@ systemctl start proxmox-zfs-exporter
         <span style="color:#ff79c6">summary</span>: <span style="color:#f1fa8c">&#34;Free space is at {{ .Value }}% for zpool: {{$labels.name}} on node: {{$labels.node}}&#34;</span>
         <span style="color:#ff79c6">description</span>: <span style="color:#f1fa8c">&#34;Free space is at {{ .Value }}% for zpool: {{$labels.name}} on node: {{$labels.node}}&#34;</span>
 </code></pre></div><p><img src="http:///blantontechnology.com/img/firing-alert.png" alt="Firing Alert"></p>
-<p>I&rsquo;m very new to Prometheus and alertmanager but these alerts are a good start</p>
+<p>I&rsquo;m very new to Prometheus and alertmanager but these alerts are a good start.</p>
 <h2 id="conclusion">Conclusion</h2>
 <p>Learning how to create exporters opens up a whole world of possibilities. I already know the next step I want to take with this exporter&hellip; The Proxmox API provides some great info about SMART diagnostics for all the disks in Proxmox, this would be another great place to monitor so I can go ahead and have drives ready for my server if any errors start to arise.</p>
 
+            </div>
+        </div>
+        <div id="comments" class="tile is-child box">
+            <div class="content">
+            <h2>Comments</h2>
+            
+                <button class="button is-primary" onclick="showComments()">Show Comments</button>
+<script>
+    var generatedComments = false
+
+    function showComments() {
+        var id =  2 ;
+    
+        if (id && !generatedComments)
+        {
+            generateComments(id)
+        }
+    }
+
+    function generateComments(id) {
+        generatedComments = true
+        let url = "https://github.com/zbblanton/blog/issues/".concat(id);
+        let api_url = "https://api.github.com/repos/zbblanton/blog/issues/".concat(id, "/comments");
+        
+        var commentsDiv = document.getElementById("comments");
+
+        let xhr = new XMLHttpRequest();
+        xhr.responseType = "json";
+        xhr.open("GET", api_url);
+        xhr.setRequestHeader("Accept", "application/vnd.github.v3.html+json");
+        xhr.send();
+
+        xhr.onload = function()
+        {
+            if (xhr.status != 200)
+            {
+            let errorText = document.createElement("p");
+            errorText.innerHTML = "<i>Comments for this post yet are not opened yet (or you have GitHub scripts disabled).</i>";
+            commentsDiv.appendChild(errorText);
+            }
+            else
+            {
+            let comments = xhr.response;
+
+            let mainHeader = document.createElement("h2");
+            mainHeader.innerHTML = "Comments: ".concat(comments.length);
+            commentsDiv.appendChild(mainHeader);
+
+            let issueLink = document.createElement("p");
+            issueLink.innerHTML = "<i>You can leave a comment using this <a href='".concat(url, "'>GitHub issue</a>.</i>");
+            commentsDiv.appendChild(issueLink);
+            
+            comments.forEach(function(comment)
+            {
+                let commentContent = document.createElement("div");
+                commentContent.setAttribute('class', 'gh-comment')
+                commentContent.innerHTML = "".concat(
+                    "<div class='gh-header'>",
+                        "<img src='", comment.user.avatar_url, "' />",
+                        "<div style='margin:auto 0;'>",
+                        "<b><a class='gh-username' href='", comment.user.html_url, "'>", comment.user.login, "</a></b>",
+                        " commented at <em>", new Date(comment.created_at), "</em>",
+                        "</div>",
+                    "</div>",
+                    "<div class='gh-body'>",
+                        comment.body_html,
+                    "</div>"
+                );
+                commentsDiv.appendChild(commentContent);
+            });
+            }
+        };
+
+        xhr.onerror = function()
+        {
+            let errorText = document.createElement("p");
+            errorText.innerHTML = "<i>Some error loading comments.</i>";
+            commentsDiv.appendChild(errorText);
+        };
+    }
+  </script>
+            
             </div>
         </div>
     </div>
