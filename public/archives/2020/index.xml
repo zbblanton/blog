@@ -5,10 +5,20 @@
     <description>Recent content in 2020 on Blanton Technology</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 11 May 2020 02:23:05 -0400</lastBuildDate>
+    <lastBuildDate>Sat, 30 May 2020 23:01:34 -0400</lastBuildDate>
     
         <atom:link href="http:///blantontechnology.com/archives/2020/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Creating a Prometheus Metrics Exporter for ZFS</title>
+      <link>http:///blantontechnology.com/2020/creating-a-prometheus-metrics-exporter-for-zfs/</link>
+      <pubDate>Sat, 30 May 2020 23:01:34 -0400</pubDate>
+      
+      <guid>http:///blantontechnology.com/2020/creating-a-prometheus-metrics-exporter-for-zfs/</guid>
+      <description>Creating a Prometheus Exporter for Proxmox ZFS I&amp;rsquo;m starting to get into monitoring with Prometheus and Alertmanager. One of the first things I want to start monitoring is ZFS on my Proxmox server. I noticed that there isn&amp;rsquo;t many exporters to scrape ZFS information so I decided to figure out how to create an exporter that can I can then use to monitor my ZFS zpools.
+The source code for the end result is here: https://github.</description>
+    </item>
     
     <item>
       <title>Creating a Kubernetes Controller</title>
