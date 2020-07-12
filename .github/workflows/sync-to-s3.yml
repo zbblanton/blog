@@ -17,5 +17,10 @@ jobs:
     - run: |
         sudo apt-get update
         sudo apt-get install awscli
+        aws s3 ls
         echo "Hello ${{ github.event.inputs.name }}!"
         echo "- in ${{ github.event.inputs.home }}!"
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.ACTIONS_USER_ACCESS_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.ACTIONS_USER_SECRET_ID }}
+        AWS_DEFAULT_REGION: us-east-1
