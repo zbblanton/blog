@@ -15,9 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - run: |
+        ls -la
         sudo apt-get update
         sudo apt-get install awscli
-        aws s3 ls
+        ls -la
+        #aws s3 ls
+        #aws s3 sync . s3://static-blog-blantontechnology --delete
         echo "Hello ${{ github.event.inputs.name }}!"
         echo "- in ${{ github.event.inputs.home }}!"
       env:
