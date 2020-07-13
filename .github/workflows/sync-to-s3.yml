@@ -1,15 +1,4 @@
 name: Sync to S3
-on:
-  workflow_dispatch:
-    inputs:
-      name:
-        description: 'Person to greet'
-        required: true
-        default: 'Mona the Octocat'
-      home:
-        description: 'location'
-        required: false
-
 jobs:
   checkout_repo:
     name: Sync blog to S3
@@ -19,14 +8,8 @@ jobs:
       uses: actions/checkout@v2
     - name: Sync blog to S3
       run: |
-        cd $GITHUB_WORKSPACE
-        pwd
-        ls -la
-        #aws s3 ls s3://static-blog-blantontechnology/
-        #aws s3 ls
-        #aws s3 sync . s3://static-blog-blantontechnology --delete
-        echo "Hello ${{ github.event.inputs.name }}!"
-        echo "- in ${{ github.event.inputs.home }}!"
+        cd $GITHUB_WORKSPACE/public
+        aws s3 sync public/ s3://static-blog-blantontechnology --delete
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.ACTIONS_USER_ACCESS_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ACTIONS_USER_SECRET_ID }}
