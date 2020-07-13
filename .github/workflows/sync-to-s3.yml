@@ -11,14 +11,20 @@ on:
         required: false
 
 jobs:
-  say_hello:
+  checkout_repo:
+    name: Checkout repo
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
       uses: actions/checkout@v2
+  sync_to_s3:
+    name: Sync blog to S3
+    runs-on: ubuntu-latest
+    steps:
     - name: Sync blog to S3
       run: |
         pwd
+        ls -la
         aws s3 ls s3://static-blog-blantontechnology/
         #aws s3 ls
         #aws s3 sync . s3://static-blog-blantontechnology --delete
