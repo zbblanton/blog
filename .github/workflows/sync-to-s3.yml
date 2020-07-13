@@ -1,14 +1,17 @@
 name: Sync to S3
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - master
 jobs:
-  checkout_repo:
+  sync_blog_to_s3:
     name: Sync blog to S3
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
       uses: actions/checkout@v2
-    - name: Sync blog to S3
+    - name: Sync
       run: |
         cd $GITHUB_WORKSPACE/public
         aws s3 sync . s3://static-blog-blantontechnology --delete
