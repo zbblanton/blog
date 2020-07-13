@@ -12,16 +12,11 @@ on:
 
 jobs:
   checkout_repo:
-    name: Checkout repo
+    name: Sync blog to S3
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
       uses: actions/checkout@v2
-  sync_to_s3:
-    name: Sync blog to S3
-    needs: checkout_repo
-    runs-on: ubuntu-latest
-    steps:
     - name: Sync blog to S3
       run: |
         cd $GITHUB_WORKSPACE
