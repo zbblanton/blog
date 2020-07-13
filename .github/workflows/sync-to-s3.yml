@@ -1,4 +1,6 @@
 name: Sync to S3
+on:
+  workflow_dispatch:
 jobs:
   checkout_repo:
     name: Sync blog to S3
