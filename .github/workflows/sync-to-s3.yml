@@ -19,6 +19,7 @@ jobs:
       uses: actions/checkout@v2
   sync_to_s3:
     name: Sync blog to S3
+    needs: checkout_repo
     runs-on: ubuntu-latest
     steps:
     - name: Sync blog to S3
