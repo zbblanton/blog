@@ -24,9 +24,10 @@ jobs:
     steps:
     - name: Sync blog to S3
       run: |
+        cd $GITHUB_WORKSPACE
         pwd
         ls -la
-        aws s3 ls s3://static-blog-blantontechnology/
+        #aws s3 ls s3://static-blog-blantontechnology/
         #aws s3 ls
         #aws s3 sync . s3://static-blog-blantontechnology --delete
         echo "Hello ${{ github.event.inputs.name }}!"
