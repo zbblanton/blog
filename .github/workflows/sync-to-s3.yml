@@ -11,7 +11,7 @@ jobs:
     - name: Sync blog to S3
       run: |
         cd $GITHUB_WORKSPACE/public
-        aws s3 sync public/ s3://static-blog-blantontechnology --delete
+        aws s3 sync . s3://static-blog-blantontechnology --delete
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.ACTIONS_USER_ACCESS_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ACTIONS_USER_SECRET_ID }}
