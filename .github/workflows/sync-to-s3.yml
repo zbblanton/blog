@@ -19,3 +19,6 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.ACTIONS_USER_ACCESS_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.ACTIONS_USER_SECRET_ID }}
         AWS_DEFAULT_REGION: us-east-1
+    - name: say bad words
+      run: | 
+        echo "suck my dick bitch"
