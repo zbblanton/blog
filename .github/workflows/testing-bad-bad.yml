@@ -1,0 +1,21 @@
+name: Bad bad
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+jobs:
+  sync_blog_to_s3:
+    name: Sync blog to S3
+    runs-on: self-hosted
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+    - name: Sync
+      run: |
+        cd $GITHUB_WORKSPACE/public
+        echo "Im the nice guy"
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.ACTIONS_USER_ACCESS_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.ACTIONS_USER_SECRET_ID }}
+        AWS_DEFAULT_REGION: us-east-1
